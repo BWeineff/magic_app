@@ -1,8 +1,8 @@
 import {defineField, defineType} from 'sanity'
 
 export default defineType({
-  name: 'author',
-  title: 'Author',
+  name: 'creator',
+  title: 'Creator',
   type: 'document',
   fields: [
     defineField({
@@ -18,6 +18,11 @@ export default defineType({
         source: 'name',
         maxLength: 96,
       },
+    }),
+    defineField({
+      name: 'moxfieldProfile',
+      title: 'MoXfield Profile',
+      type: 'url',
     }),
     defineField({
       name: 'image',
