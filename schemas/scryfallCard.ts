@@ -21,23 +21,8 @@ export default defineType({
       type: 'object',
       fields: [
         {
-          name: 'small',
-          title: 'Small',
-          type: 'url',
-        },
-        {
           name: 'normal',
           title: 'Normal',
-          type: 'url',
-        },
-        {
-          name: 'large',
-          title: 'Large',
-          type: 'url',
-        },
-        {
-          name: 'png',
-          title: 'PNG',
           type: 'url',
         },
       ],
@@ -69,4 +54,10 @@ export default defineType({
       type: 'string',
     }),
   ],
+  preview: {
+    select: {
+      title: 'name',
+      media: 'image',
+    },
+  },
 });

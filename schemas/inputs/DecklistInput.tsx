@@ -1,60 +1,59 @@
-// schemas/inputs/DecklistInput.tsx
-
 import React, { useState } from 'react';
 import axios from 'axios';
+import { TextInputProps, set, unset } from 'sanity';
 import { Card, ScryfallCard } from '../../types';
+import { checkCardExistence, saveCardToSanity } from '../sanityUtils';
 
-interface DecklistInputProps {
-  value: string;
-  onChange: (newValue: string) => void;
-}
-
-export function DecklistInput({ value, onChange }: DecklistInputProps) {
+export function DecklistInput({ value, onChange }: TextInputProps) {
   const [decklist, setDecklist] = useState(value);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [fetchedCards, setFetchedCards] = useState<ScryfallCard[]>([]);
 
   const handleDecklistChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = event.target.value;
     setDecklist(newValue);
-    onChange(newValue);
+    onChange(newValue ? set(newValue) : unset());
   };
 
   const handleFetchCards = async () => {
     setErrorMessage(null);
-
-    const lines = decklist.split('\n');
+    const lines = decklist?.split('\n') || [];
     const cards: Card[] = [];
 
     for (const line of lines) {
-      const parts = line.trim().split(' ', 2);
-      if (parts.length !== 2 || !/^\d+$/.test(parts[0])) {
-        setErrorMessage('Error: Invalid line format');
+      const parts = line.trim().split(' ');
+      if (parts.length < 2 || !/^\d+$/.test(parts[0])) {
+        setErrorMessage('Error: Invalid line format...');
         return;
       }
 
       const quantity = parseInt(parts[0]);
-      const cardName = parts[1];
-      cards.push({ quantity, cardName });
-    }
+      const cardName = parts.slice(1).join(' ');
 
-    const scryfallCards: ScryfallCard[] = [];
+      const cardExists = await checkCardExistence(cardName);
 
-    for (const card of cards) {
-      try {
-        const response = await axios.get('https://api.scryfall.com/cards/named', {
-          params: {
-            fuzzy: card.cardName,
-          },
-        });
+      if (!cardExists) {
+        try {
+          const response = await axios.get('https://api.scryfall.com/cards/named', {
+            params: {
+              fuzzy: cardName,
+            },
+          });
 
-        scryfallCards.push(response.data as ScryfallCard);
-      } catch (error) {
-        setErrorMessage(`Error: Unable to fetch card: ${card.cardName}`);
-        return;
+          const scryfallCard: ScryfallCard = response.data;
+          await saveCardToSanity(scryfallCard); // Implement this function to save the card to Sanity
+          setFetchedCards((prevCards) => [...prevCards, scryfallCard]);
+        } catch (error) {
+          setErrorMessage(`Error: Unable to fetch card: ${cardName} Error: ${error}`);
+          return;
+        }
       }
     }
 
-    console.log('Scryfall Cards:', scryfallCards);
+    console.log('All Cards:', cards.concat(fetchedCards.map((scryfallCard) => ({
+      quantity: 1,
+      cardName: scryfallCard.name,
+    }))));
   };
 
   return (
